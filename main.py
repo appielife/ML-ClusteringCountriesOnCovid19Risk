@@ -27,7 +27,7 @@ dataset_covid_test_performed= pd.read_csv("./dataSource/total-covid-19-tests-per
 
 # just to display data f rom diff
 dataset_indicators.tail(10)
-dataset_covid19_cases.tail(3)
+dataset_covid19_cases.tail(5)
 dataset_covid_test_performed.tail(5)
 
 # Aggregating the cases by countries to get the latest confirmed cases, deaths and recovered cases
@@ -133,11 +133,11 @@ plt.ylabel(" Within Cluster Sum of Squares")
 plt.show()
 
 ##### Grouping countries into 5 different clusters based on no. of test performed, cases confirmed, deaths and recovered cases and different health indicators showing the health care condition
-kmeans_covid = KMeans(n_clusters = 3, init='k-means++', max_iter=300, n_init=10)
+kmeans_covid = KMeans(n_clusters = 5, init='k-means++', max_iter=300, n_init=10)
 y_kmeans = kmeans.fit_predict(data_k)
 
 # Fitting K-Means to the dataset
-kmeans = KMeans(n_clusters = 3, init = 'k-means++', random_state = 42)
+kmeans = KMeans(n_clusters = 5, init = 'k-means++', random_state = 42)
 y_kmeans = kmeans.fit_predict(data_k)
 
 
@@ -167,7 +167,7 @@ data_risk["country"]=data_tmp["country_region"]
 data_risk["Risk_Level"]=y_kmeans1
 
 
-for group in range(1,11):
+for group in range(1,6):
     countries=data_risk.loc[data_risk['Risk_Level']==group]
     listofcoutries= list(countries['country'])
     print("Group", group, ":", listofcoutries)
@@ -241,7 +241,7 @@ plt.show()
 
 
 # Fitting K-Means to the dataset
-kmeans = KMeans(n_clusters = 3, init = 'k-means++', random_state = 42)
+kmeans = KMeans(n_clusters = 5, init = 'k-means++', random_state = 42)
 y_kmeans = kmeans.fit_predict(data_health)
 
 
