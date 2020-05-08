@@ -11,9 +11,6 @@ import plotly
 # InteractiveShell.ast_node_interactivity = 'all'
 
 
-
-
-
 # get file paths 
 for dirname, _, filenames in os.walk('/kaggle/input'):
     for filename in filenames:
@@ -21,21 +18,27 @@ for dirname, _, filenames in os.walk('/kaggle/input'):
 
 
 dataset_indicators= pd.read_csv("./dataSource/inform-covid-indicators.csv")
-dataset_covid19_cases = pd.read_csv("./dataSource/johns-hopkins-covid-19-daily-dashboard-cases-by-country.csv")
-dataset_covid_test_performed= pd.read_csv("./dataSource/total-covid-19-tests-performed-by-country.csv")
+dataset_covid19_cases = pd.read_csv("./dataSource_emma/johns-hopkins-covid-19-05-08.csv")
+dataset_covid_test_performed= pd.read_csv("./dataSource_emma/total-covid-19-tests-performed-by-country-05-07.csv")
 dataset_population = pd.read_csv("./dataSource/world_population.csv")
 
-# just to display data from diff
-print("Indicators:\n",dataset_indicators.tail(10))
+# Get just the relevant data from the dataset
+dataset_confirmed_cases_by_country = dataset_covid19_cases[['Country_Region', 'Confirmed', 'Deaths', 'Recovered', 'Active']]
 dataset_covid_test_performed = dataset_covid_test_performed[["entity", "total_covid_19_tests"]]
-print("Tests performed:\n",dataset_covid_test_performed.tail(5))
 dataset_population = dataset_population[["name", "pop2020"]]
-dataset_population = dataset_population.rename(columns={"name": "country_region", "pop2020":"population"})
-print("Population:\n", dataset_population.head(5))
+dataset_population['pop2020'] = dataset_population['pop2020'].apply(lambda x: x*1000)
 
-# Aggregating the cases by countries to get the latest confirmed cases, deaths and recovered cases
-dataset_confirmed_cases_by_country = dataset_covid19_cases[['country_region', 'confirmed', 'deaths', 'recovered', 'active']]
-print("Cases:\n",dataset_confirmed_cases_by_country.head(5))
+# Rename column names for joining dataframes
+dataset_indicators = dataset_indicators.rename(columns={"country": 'country_region'})
+dataset_confirmed_cases_by_country = dataset_confirmed_cases_by_country.rename(columns={'Country_Region': "country_region", 'Confirmed':'confirmed','Deaths':'deaths', 'Recovered':'recovered', 'Active':'active' })
+dataset_covid_test_performed = dataset_covid_test_performed.rename(columns={"entity": 'country_region'})
+dataset_population = dataset_population.rename(columns={"name": "country_region", "pop2020":"population"})
+
+
+print("Indicators:\n",dataset_indicators.tail(10))
+print("Cases:\n",dataset_confirmed_cases_by_country.tail(5))
+print("Tests performed:\n",dataset_covid_test_performed.tail(5))
+print("Population:\n", dataset_population.head(5))
 
 
 # Plotting the confirmed cases on the world map
@@ -46,68 +49,57 @@ data = [dict(type='choropleth',
              locationmode='country names')]
 fig = dict(data=data, 
            layout_title_text="COVID-19 Confirmed cases")
-# plotly.offline.plot(fig)
+plotly.offline.plot(fig)
 
 # Plotting the no. of test performed across different countries¶
 data = [dict(type='choropleth',
-             locations = dataset_covid_test_performed['entity'].astype(str),
+             locations = dataset_covid_test_performed['country_region'].astype(str),
              z=dataset_covid_test_performed['total_covid_19_tests'].astype(int),
              locationmode='country names')]
 
 fig = dict(data=data, 
            layout_title_text="COVID-19 test performed")
 
-# plotly.offline.plot(fig)
+plotly.offline.plot(fig)
 
 
-
-# Matching Country Names from Covid cases and data indicator file to join the datasets
-
-# cleaning the country names for joining
+# Match country names for joining dataframes
 dataset_confirmed_cases_by_country.loc[dataset_confirmed_cases_by_country.country_region=='US','country_region']='United States of America'
-# dataset_confirmed_cases_by_country.replace(regex={r'.*Korea': 'South Korea'})
-dataset_confirmed_cases_by_country.loc[dataset_confirmed_cases_by_country.country_region=='Korea South','country_region']='South Korea'
+dataset_confirmed_cases_by_country.loc[dataset_confirmed_cases_by_country.country_region=='Korea, South','country_region']='South Korea'
+dataset_confirmed_cases_by_country.loc[dataset_confirmed_cases_by_country.country_region=='Taiwan*','country_region']='Taiwan'
 
 dataset_population.loc[dataset_population.country_region=='Republic of the Congo','country_region']='Congo (Brazzaville)'
 dataset_population.loc[dataset_population.country_region=='United States','country_region']='United States of America'
 dataset_population.loc[dataset_population.country_region=='Czech Republic','country_region']='Czechia'
 dataset_population.loc[dataset_population.country_region=='Macedonia','country_region']='North Macedonia'
 
-dataset_indicators.loc[dataset_indicators.country=='Viet Nam','country']='Vietnam'
-dataset_indicators.loc[dataset_indicators.country=='Russian Federation','country']='Russia'
-dataset_indicators.loc[dataset_indicators.country=='Korea Republic of','country']='South Korea'
-dataset_indicators.loc[dataset_indicators.country=='Moldova Republic of','country']='Moldova'
-dataset_covid_test_performed.loc[dataset_covid_test_performed.entity=='United States','entity']='United States of America'
+dataset_indicators.loc[dataset_indicators.country_region=='Viet Nam','country_region']='Vietnam'
+dataset_indicators.loc[dataset_indicators.country_region=='Russian Federation','country_region']='Russia'
+dataset_indicators.loc[dataset_indicators.country_region=='Korea Republic of','country_region']='South Korea'
+dataset_indicators.loc[dataset_indicators.country_region=='Moldova Republic of','country_region']='Moldova'
 
-#renaming country column name to country_region for joing the two dataframes
-dataset_covid_test_performed = dataset_covid_test_performed.rename(columns={"entity": 'country_region'})
-dataset_indicators = dataset_indicators.rename(columns={"country": 'country_region'})
+dataset_covid_test_performed.loc[dataset_covid_test_performed.country_region=='United States','country_region']='United States of America'
 
-#replace No Data with 0
-dataset_indicators=dataset_indicators.replace("No data", 0)
-
-
-
-
-
-# outer join between cases in different countries and countries health indicators
-# data_tmp=pd.merge(left=dataset_confirmed_cases_by_country,right=dataset_indicators, left_on='country_region', right_on='country_region', how='left')
-# Left join the resultant dataset with no. of test performd in different countries
-data_tmp = pd.merge(left=dataset_confirmed_cases_by_country,right=dataset_population, left_on='country_region', right_on='country_region', how='left')
-data_tmp=pd.merge(left=data_tmp,right=dataset_covid_test_performed, left_on='country_region', right_on='country_region', how='left')
+# Left join to merge other datasets into covid cases dataset
+data_tmp = pd.merge(left=dataset_confirmed_cases_by_country,right=dataset_indicators, left_on='country_region', right_on='country_region', how='left')
+data_tmp = pd.merge(left=data_tmp,right=dataset_population, left_on='country_region', right_on='country_region', how='left')
+data_tmp = pd.merge(left=data_tmp,right=dataset_covid_test_performed, left_on='country_region', right_on='country_region', how='left')
 data_tmp = data_tmp.sort_values(by=["country_region"])
-print("\nCleaned & Merged data")
-print(data_tmp.tail(20), "\n")
+
 
 data_tmp["confirmed_ratio"] = data_tmp["confirmed"]/data_tmp["population"]
+data_tmp["confirmed_ratio"] = data_tmp["confirmed_ratio"].apply(lambda x: x*100)
 
 data_tmp["test_ratio"] = data_tmp["total_covid_19_tests"]/data_tmp["population"]
+data_tmp["test_ratio"] = data_tmp["test_ratio"].apply(lambda x: x*100)
+
+# Replace invalid data values 
+data_tmp=data_tmp.replace("No data", 0)
 data_tmp=data_tmp.replace(np.inf, 0)
 data_tmp=data_tmp.replace(np.nan, 0)
 data_tmp=data_tmp.replace('x', 0)
 
 print(data_tmp.tail(20))
-
 
 
 # print("\nFIX ME\n",  data_tmp.loc[data_tmp['confirmed_ratio'] == np.inf])
