@@ -4,16 +4,26 @@ import plotly.subplots as tls
 import plotly.graph_objs as go
 
 INPUT_FILE = "./dataSource_emma/features_combined.csv"
+
+## Add feature names that you want to filter out
 NULL_FEATURES = ['country','Country_Region','entity','total_covid_19_tests']
+
+## Add Features that you want to load from features_combined.csv
 FILTER_FEATURES = ['Country_Region', 'entity', 'total_covid_19_tests','Confirmed', 'Deaths', 'Recovered', 'Active', 'pop2020', 'Lat','Long_']
-COUNTRY_FROM, COUNTRY_TO = [], []
+
 
 dataset_feature = pd.read_csv(INPUT_FILE)
+
 not_null_features_df = dataset_feature[dataset_feature[NULL_FEATURES].notnull().all(1)]
-dataset_features_by_country = not_null_features_df[FILTER_FEATURES]
+not_zero_total_tests_df = not_null_features_df[dataset_feature['total_covid_19_tests']!=0]
+dataset_features_by_country = not_zero_total_tests_df[FILTER_FEATURES]
 dataset_features_by_country.fillna(0)
 
+dataset_features_by_country.loc[dataset_features_by_country.Country_Region=='US','Country_Region']='United States of America'
+dataset_features_by_country.loc[dataset_features_by_country.entity=='United States','entity']='United States of America'
 
+
+## plot result
 fig = tls.make_subplots(rows=2, cols=2,
     column_widths=[0.5, 0.5],
     row_heights=[0.5, 0.5],
@@ -51,9 +61,6 @@ fig.add_trace(
     row=1, col=2
 )
 
-#fig.update_geos(projection_type="orthographic")
-#fig.update_geos(projection_type="natural earth")
-
 fig.update_layout(
     #template="plotly_dark",
     title = ' Machine Learning Final Project - COVID-19<br>\
@@ -63,7 +70,7 @@ fig.update_layout(
     height = 900,
     annotations=[
         dict(
-            text="TEST 1234567",
+            text="",
             showarrow=False,
             xref="paper",
             yref="paper",
@@ -71,21 +78,6 @@ fig.update_layout(
             y=0)
     ],
 )
-#fig['layout']['scene1'].update(annotations=[dict(z=40, text='my title', showarrow=False)])
+
 fig.show()
-
-#choromap = go.Figure(data=[data1, data2, marker], layout=layout)
-#choromap.show()
-#plotly.offline.plot(choromap)
-
-# cleaning the country names for joining
-dataset_features_by_country.loc[dataset_features_by_country.Country_Region=='US','Country_Region']='United States of America'
-dataset_features_by_country.loc[dataset_features_by_country.country=='Viet Nam','country']='Vietnam'
-dataset_features_by_country.loc[dataset_features_by_country.country=='Russian Federation','country']='Russia'
-dataset_features_by_country.loc[dataset_features_by_country.country=='Korea Republic of','country']='Korea, South'
-dataset_features_by_country.loc[dataset_features_by_country.country=='Moldova Republic of','country']='Moldova'
-dataset_features_by_country.loc[dataset_features_by_country.entity=='United States','entity']='United States of America'
-
-#replace No Data with 0
-#dataset_indicators=dataset_indicators.replace("No data", 0)
 
