@@ -21,8 +21,14 @@ for dirname, _, filenames in os.walk('/kaggle/input'):
 
 
 dataset_indicators= pd.read_csv("./dataSource/inform-covid-indicators.csv")
-dataset_covid19_cases = pd.read_csv("./dataSource/johns-hopkins-covid-19-daily-dashboard-cases-by-country.csv")
-dataset_covid_test_performed= pd.read_csv("./dataSource/total-covid-19-tests-performed-by-country.csv")
+# dataset_covid19_cases = pd.read_csv("./dataSource_emma/johns-hopkins-covid-19-daily-dashboard-cases-by-country.csv")
+dataset_covid19_cases = pd.read_csv("./dataSource_emma/johns-hopkins-covid-19-05-08.csv")
+
+
+
+# dataset_covid_test_performed= pd.read_csv("./dataSource_emma/total-covid-19-tests-performed-by-country.csv")
+dataset_covid_test_performed= pd.read_csv("./dataSource_emma/total-covid-19-tests-performed-by-country-05-07.csv")
+
 
 
 # just to display data f rom diff
@@ -122,15 +128,22 @@ from sklearn.cluster import KMeans
 #calculating WCSS which is the sum of squares of the distances of each data point represeting a country
 #in all clusters to their respective centroids
 wcss=[]
-for i in range(1,4):
-    kmeans = KMeans(n_clusters=i, init='k-means++', max_iter=300, n_init=10)
+for i in range(1,6):
+    kmeans = KMeans(n_clusters=i, init='k-means++', max_iter=300, n_init=10)    
     y_means = kmeans.fit(data_k)
     wcss.append(y_means.inertia_)
 #Plotting WCSS to find the number of clusters
-plt.plot(range(1,4), wcss)
+plt.plot(range(1,6), wcss)
 plt.xlabel("No. of clusters")
 plt.ylabel(" Within Cluster Sum of Squares")
 plt.show()
+
+
+
+
+
+
+
 
 ##### Grouping countries into 5 different clusters based on no. of test performed, cases confirmed, deaths and recovered cases and different health indicators showing the health care condition
 kmeans_covid = KMeans(n_clusters = 5, init='k-means++', max_iter=300, n_init=10)
@@ -162,6 +175,7 @@ plt.show()
 
 
 
+
 data_risk= pd.DataFrame()
 data_risk["country"]=data_tmp["country_region"]
 data_risk["Risk_Level"]=y_kmeans1
@@ -181,11 +195,57 @@ data = [dict(type='choropleth',
 # Plotting the groups of countries on world map¶
 
 fig = dict(data=data, 
-           layout_title_text="Country grouped based on Health care quality, no. of COVID-19 cases and tests performed")
+           layout_title_text="Country grouped based on Health care quality, no. of COVID-19 cases and tests performed (KMEANS   )")
 
 plotly.offline.plot(fig)
 
 
+
+# GMMGMGMGMGMGMGMMGM
+
+
+# from sklearn.mixture import GMM
+from sklearn.mixture import GaussianMixture as GMM
+gmm = GMM(n_components=5).fit(data_k)
+labels = gmm.predict(data_k)
+plt.scatter(data_k.iloc[:,0], data_k.iloc[:,1], c=labels, s=40, cmap='viridis')
+plt.title('Covid Clustering using GMM')
+plt.xlabel("Test Perfomed by the country")
+plt.ylabel("No. of confirmed cases")
+plt.show()
+
+
+
+
+
+
+
+
+data_risk= pd.DataFrame()
+data_risk["country"]=data_tmp["country_region"]
+data_risk["Risk_Level"]=labels+1
+
+
+
+print("\n\n GMM \n\n\n")
+for group in range(1,6):
+    countries=data_risk.loc[data_risk['Risk_Level']==group]
+    listofcoutries= list(countries['country'])
+    print("Group", group, ":", listofcoutries)
+
+data = [dict(type='choropleth',
+             colorscale='reds',
+             locations =data_risk['country'].astype(str),
+             z= data_risk['Risk_Level'].astype(int),
+             locationmode='country names')]
+# Plotting the groups of countries on world map¶
+
+fig = dict(data=data, 
+           layout_title_text="Country grouped based on Health care quality, no. of COVID-19 cases and tests performed")
+
+plotly.offline.plot(fig)
+
+    
 
 # Feature importances for understanding risk to to different countries¶
 
@@ -257,4 +317,6 @@ data_health['cluster'] = cluster
 kmeans_mean_cluster = pd.DataFrame(round(data_health.groupby('cluster').mean(),1))
 kmeans_mean_cluster
 print(kmeans_mean_cluster)
+
+
 
