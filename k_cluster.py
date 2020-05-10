@@ -3,6 +3,8 @@ import numpy as np
 import os
 import plotly.subplots as tls
 import plotly.graph_objs as go
+import plotly.express as px
+import plotly
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from matplotlib import pyplot as plt
@@ -50,15 +52,28 @@ data_tmp=data_tmp.replace('x', 0)
 
 print(data_tmp)
 
-# SCALE DATA
-scaler = StandardScaler()
+
 data = data_tmp.drop(columns=["Country_Region","pop2020", "Confirmed", "total_covid_19_tests"])
 print("DATA FOR CLUSTERING\n", data.tail(10))
 print("\nfeatures:", data.columns)
-data_k = scaler.fit_transform(data)
-# print("\nSCALED DATA\n", data_k)
 
+#------------------------------------------------------------------------------------------
+# CLUSTER WITH UNSCALED DATA
+#------------------------------------------------------------------------------------------
+data_unscaled = data_tmp.drop(columns=["Country_Region","pop2020", "Confirmed", "total_covid_19_tests"])
 
+#Plot WCSS to find the best number of clusters to use
+wcss=[]
+for i in range(1,15):
+    kmeans = KMeans(n_clusters=i, init='k-means++')
+    kmeans.fit(data_unscaled)
+    wcss.append(kmeans.inertia_)
+plt.plot(range(1,15), wcss)
+plt.xlabel("No. of clusters")
+plt.ylabel(" Within Cluster Sum of Squares")
+plt.show()
+
+# Find the factor that impacts the confirmed ratio the most to visualize the clusters
 from sklearn.feature_selection import mutual_info_regression, mutual_info_classif
 from sklearn.feature_selection import SelectKBest, SelectPercentile
 mi = mutual_info_regression(data.drop(columns=['confirmed_ratio']), data['confirmed_ratio'] )
@@ -66,10 +81,44 @@ mi = pd.Series(mi)
 mi.index = data.drop(columns=['confirmed_ratio']).columns
 mi.sort_values(ascending=False)
 mi.sort_values(ascending=False).plot.bar(figsize=(10, 4))
-plt.title("Factor impacting COVID-19 confirmed cases")
+plt.title("Factor impacting COVID-19 confirmed cases ratio (UNSCALED)")
 plt.show()
 
+# Cluster without scaling
+kmeans = KMeans(n_clusters = 5, init='k-means++')
+kmeans.fit(data_unscaled)
+pred = kmeans.predict(data_unscaled)
 
+data_unscaled["country_region"]=data_tmp["Country_Region"]
+data_unscaled['cluster'] = pred
+print("\nDATAFRAME WITHOUT SCALING")
+print(data_unscaled.tail(30))
+print("\nCluster counts:")
+print(data_unscaled['cluster'].value_counts())
+
+print("\nCLUSTERS WITHOUT SCALING")
+for group in range(0,5):
+    countries=data_unscaled.loc[data_unscaled['cluster']==group]
+    listofcoutries= list(countries['country_region'])
+    print("Group", group, ":", listofcoutries, "\n-------------------")
+
+# Plot cluster visualization
+plt.figure(figsize=(10, 8))
+plt.scatter(data_unscaled['current_health_expenditure_per_capita'], data_unscaled["confirmed_ratio"],c=pred, cmap='rainbow')
+plt.title('Covid Clustering')
+plt.xlabel("Current Health Expenditure Per Capita")
+plt.ylabel("No. of confirmed cases")
+plt.show()
+
+cluster_avgs = pd.DataFrame(round(data_unscaled.groupby('cluster').mean(),1))
+print("\nCLUSTER UNSCALED AVERAGES\n", cluster_avgs)
+
+#------------------------------------------------------------------------------------------
+# CLUSTER WITH SCALED DATA
+#------------------------------------------------------------------------------------------
+scaler = StandardScaler()
+print("DATA FOR CLUSTERING\n", data.tail(10))
+data_k = scaler.fit_transform(data)
 
 #Plot WCSS to find the best number of clusters to use
 wcss=[]
@@ -80,6 +129,19 @@ for i in range(1,15):
 plt.plot(range(1,15), wcss)
 plt.xlabel("No. of clusters")
 plt.ylabel(" Within Cluster Sum of Squares")
+plt.show()
+
+data_scaled = pd.DataFrame(data_k)
+data_scaled.columns = data.columns
+# Find the factor that impacts the confirmed ratio the most to visualize the clusters
+from sklearn.feature_selection import mutual_info_regression, mutual_info_classif
+from sklearn.feature_selection import SelectKBest, SelectPercentile
+mi = mutual_info_regression(data_scaled.drop(columns=['confirmed_ratio']), data_scaled['confirmed_ratio'] )
+mi = pd.Series(mi)
+mi.index = data_scaled.drop(columns=['confirmed_ratio']).columns
+mi.sort_values(ascending=False)
+mi.sort_values(ascending=False).plot.bar(figsize=(10, 4))
+plt.title("Factor impacting COVID-19 confirmed cases ratio (SCALED)")
 plt.show()
 
 # Cluster based on ALL features
@@ -97,11 +159,11 @@ print(df_k.tail(30))
 print("\nCluster counts:")
 print(df_k['cluster'].value_counts())
 
-
+print("\nCLUSTERS WITH SCALING")
 for group in range(0,5):
     countries=df_k.loc[df_k['cluster']==group]
     listofcoutries= list(countries['country_region'])
-    print("Group", group, ":", listofcoutries, "\n")
+    print("Group", group, ":", listofcoutries ,"\n-------------------")
 
 # Plot cluster visualization
 plt.figure(figsize=(10, 8))
@@ -111,6 +173,7 @@ plt.xlabel("Current Health Expenditure Per Capita")
 plt.ylabel("No. of confirmed cases")
 plt.show()
 
+# Find cluster averages 
 df_cluster = df_k[['cluster', 'confirmed_ratio', 'current_health_expenditure_per_capita', 'test_ratio', 'inform_risk', 'HDI Rank (2018)', 'mortality_rate_under_5' ]]
 cluster_avgs = pd.DataFrame(round(df_cluster.groupby('cluster').mean(),1))
 print("\nCLUSTER AVERAGES\n", cluster_avgs)
