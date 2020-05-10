@@ -43,7 +43,7 @@ def plot_multiple_maps(df_list, title = None):
     ## plot result
     _colorscale = [[0, 'blue'], [0.25, 'green'], [0.5, 'yellow'], [0.75, 'orange'], [1, 'red']]
     ROW, COL = 3, 1
-    if not title: title = 'UnScale vs Scale vs Scale With Top K'
+    if not title: title = 'Unscaled vs Scaled vs Scaled with Top Factors'
     # 2 * 2 subplots
     #fig = tls.make_subplots(rows=2, cols=2, column_widths=[0.5, 0.5], row_heights=[0.5, 0.5],
     #                        specs=[[{"type": "choropleth", "rowspan": 2}, {"type": "choropleth", "rowspan": 2}],[None, None]])
@@ -113,15 +113,16 @@ print("\nfeatures:", data.columns)
 #------------------------------------------------------------------------------------------
 data_unscaled = data_tmp.drop(columns=["Country_Region","pop2020", "Confirmed", "total_covid_19_tests"])
 
-#Plot WCSS to find the best number of clusters to use
-wcss=[]
+#Plot inertia to find the best number of clusters to use
+inertia=[]
 for i in range(1,15):
     kmeans = KMeans(n_clusters=i, init='k-means++')
     kmeans.fit(data_unscaled)
-    wcss.append(kmeans.inertia_)
-plt.plot(range(1,15), wcss)
-plt.xlabel("No. of clusters")
-plt.ylabel(" Within Cluster Sum of Squares")
+    inertia.append(kmeans.inertia_)
+plt.plot(range(1,15), inertia)
+plt.xlabel("# of clusters")
+plt.ylabel("Inertia")
+plt.title("Optimal clusters for UNSCALED data")
 plt.show()
 
 # Find the factor that impacts the confirmed ratio the most to visualize the clusters
@@ -143,7 +144,7 @@ pred = kmeans.predict(data_unscaled)
 data_unscaled["country_region"]=data_tmp["Country_Region"]
 data_unscaled['cluster'] = pred
 print("\nDATAFRAME WITHOUT SCALING")
-print(data_unscaled.tail(30))
+print(data_unscaled.tail(10))
 print("\nCluster counts:")
 print(data_unscaled['cluster'].value_counts())
 
@@ -159,14 +160,19 @@ for group in range(0,5):
 # Plot cluster visualization
 plt.figure(figsize=(10, 8))
 plt.scatter(data_unscaled['current_health_expenditure_per_capita'], data_unscaled["confirmed_ratio"],c=pred, cmap='rainbow')
-
+ax = plt.gca()
+ax.set_xticks([20,40,60, 80])
+ax.set_xticklabels(['20','40','60','80'])
 plt.title('Covid Clustering for UNSCALED DATA')
 plt.xlabel("Current Health Expenditure Per Capita")
-plt.ylabel("No. of confirmed cases")
+plt.ylabel("Ratio of Confirmed COVID Cases")
 plt.show()
+
+
 
 cluster_avgs = pd.DataFrame(round(data_unscaled.groupby('cluster').mean(),1))
 print("\nCLUSTER UNSCALED AVERAGES\n", cluster_avgs)
+print("===========================")
 
 #------------------------------------------------------------------------------------------
 # CLUSTER WITH SCALED DATA
@@ -175,28 +181,16 @@ scaler = StandardScaler()
 print("DATA FOR CLUSTERING\n", data.tail(10))
 data_k = scaler.fit_transform(data)
 
-#Plot WCSS to find the best number of clusters to use
-wcss=[]
+#Plot inertia to find the best number of clusters to use
+inertia=[]
 for i in range(1,15):
     kmeans = KMeans(n_clusters=i, init='k-means++')
     kmeans.fit(data_k)
-    wcss.append(kmeans.inertia_)
-plt.plot(range(1,15), wcss)
-plt.xlabel("No. of clusters")
-plt.ylabel(" Within Cluster Sum of Squares")
-plt.show()
-
-data_scaled = pd.DataFrame(data_k)
-data_scaled.columns = data.columns
-# Find the factor that impacts the confirmed ratio the most to visualize the clusters
-from sklearn.feature_selection import mutual_info_regression, mutual_info_classif
-from sklearn.feature_selection import SelectKBest, SelectPercentile
-mi = mutual_info_regression(data_scaled.drop(columns=['confirmed_ratio']), data_scaled['confirmed_ratio'] )
-mi = pd.Series(mi)
-mi.index = data_scaled.drop(columns=['confirmed_ratio']).columns
-mi.sort_values(ascending=False)
-mi.sort_values(ascending=False).plot.bar(figsize=(10, 4))
-plt.title("Factor impacting COVID-19 confirmed cases ratio (SCALED)")
+    inertia.append(kmeans.inertia_)
+plt.plot(range(1,15), inertia)
+plt.xlabel("# of clusters")
+plt.ylabel("Inertia")
+plt.title("Optimal clusters for SCALED data")
 plt.show()
 
 # Cluster based on ALL features
@@ -209,8 +203,8 @@ df_k = pd.DataFrame(data_k)
 df_k.columns = data.columns
 df_k["country_region"]=data_tmp["Country_Region"]
 df_k['cluster'] = pred
-print("\nDATAFRAME K")
-print(df_k.tail(30))
+print("\nDATAFRAME WITH SCALING")
+print(df_k.tail(10))
 print("\nCluster counts:")
 print(df_k['cluster'].value_counts())
 
@@ -229,13 +223,14 @@ plt.figure(figsize=(10, 8))
 plt.scatter(df_k['current_health_expenditure_per_capita'], df_k["confirmed_ratio"],c=pred, cmap='rainbow')
 plt.title('Covid Clustering for SCALED DATA')
 plt.xlabel("Current Health Expenditure Per Capita")
-plt.ylabel("No. of confirmed cases")
+plt.ylabel("Ratio of Confirmed COVID Cases")
 plt.show()
 
 # Find cluster averages 
 df_cluster = df_k[['cluster', 'confirmed_ratio', 'current_health_expenditure_per_capita', 'test_ratio', 'inform_risk', 'HDI Rank (2018)', 'mortality_rate_under_5' ]]
 cluster_avgs = pd.DataFrame(round(df_cluster.groupby('cluster').mean(),1))
-print("\nCLUSTER AVERAGES\n", cluster_avgs)
+print("\nCLUSTER SCALED AVERAGES\n", cluster_avgs)
+print("===========================")
 
 #------------------------------------------------------------------------------------------
 # CLUSTER WITH TOP FACTORS & SCALED DATA
@@ -247,8 +242,8 @@ pred = kmeans.predict(df_top)
 
 df_top["country_region"]=data_tmp["Country_Region"]
 df_top['cluster'] = pred
-print("\nDATAFRAME TOP")
-print(df_top.tail(30))
+print("\nDATAFRAME SCALED TOP FACTORS")
+print(df_top.tail(10))
 print("\nCluster counts:")
 print(df_top['cluster'].value_counts())
 
@@ -267,11 +262,11 @@ plt.scatter(df_top['current_health_expenditure_per_capita'], df_top["confirmed_r
 
 plt.title('Covid Clustering for TOP FACTORS AND SCALED DATA')
 plt.xlabel("Current Health Expenditure Per Capita")
-plt.ylabel("No. of confirmed cases")
+plt.ylabel("Ratio of Confirmed COVID Cases")
 plt.show()
 
 cluster_avgs = pd.DataFrame(round(df_top.groupby('cluster').mean(),1))
-print("\nCLUSTER TOP AVERAGES\n", cluster_avgs)
+print("\nCLUSTER SCALED TOP AVERAGES\n", cluster_avgs)
 
 
 ### #04 Emma - call plot_multiple_maps function
