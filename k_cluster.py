@@ -13,7 +13,8 @@ INPUT_FILE = "./dataSource_emma/features_combined.csv"
 NULL_FEATURES = ['country','Country_Region','entity','total_covid_19_tests']
 
 ## Add Features that you want to load from features_combined.csv
-FILTER_FEATURES = ['Country_Region', 'total_covid_19_tests','Confirmed', 'pop2020','inform_risk', 'inform_p2p_hazard_and_exposure_dimension',
+FILTER_FEATURES = ['Country_Region', 'total_covid_19_tests','Confirmed', 'pop2020',
+       'HDI Rank (2018)','inform_risk', 'inform_p2p_hazard_and_exposure_dimension',
        'population_density', 'population_living_in_urban_areas',
        'proportion_of_population_with_basic_handwashing_facilities_on_premises',
        'people_using_at_least_basic_sanitation_services',
@@ -110,4 +111,7 @@ plt.xlabel("Current Health Expenditure Per Capita")
 plt.ylabel("No. of confirmed cases")
 plt.show()
 
+df_cluster = df_k[['cluster', 'confirmed_ratio', 'current_health_expenditure_per_capita', 'test_ratio', 'inform_risk', 'HDI Rank (2018)', 'mortality_rate_under_5' ]]
+cluster_avgs = pd.DataFrame(round(df_cluster.groupby('cluster').mean(),1))
+print("\nCLUSTER AVERAGES\n", cluster_avgs)
 
