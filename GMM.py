@@ -8,11 +8,10 @@ import plotly
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from matplotlib import pyplot as plt
-
-
 # GMM
 from sklearn.mixture import GaussianMixture as GMM
 ##
+
 
 INPUT_FILE = "./dataSource_emma/features_combined.csv"
 
@@ -30,6 +29,58 @@ FILTER_FEATURES = ['Country_Region', 'total_covid_19_tests','Confirmed', 'pop202
        'prevalence_of_undernourishment', 'inform_lack_of_coping_capacity',
        'inform_access_to_healthcare', 'current_health_expenditure_per_capita',
        'maternal_mortality_ratio']
+
+def plot_clusters(df_k, title):
+    colorscale = [[0, 'blue'], [0.25, 'green'], [0.5, 'yellow'], [0.75, 'orange'], [1, 'red']]
+
+    data = [dict(type='choropleth',
+                 locations=df_k['country_region'].astype(str),
+                 z=df_k['cluster'].astype(int),
+                 locationmode='country names',
+                 colorscale=colorscale)]
+
+    fig = dict(data=data,
+               layout_title_text="<b>" + title + "</b>")
+    plotly.offline.plot(fig)
+
+def plot_multiple_maps(df_list, title = None):
+    ## plot result
+    _colorscale = [[0, 'blue'], [0.25, 'green'], [0.5, 'yellow'], [0.75, 'orange'], [1, 'red']]
+    ROW, COL = 3, 1
+    if not title: title = '[GMM] UnScale vs Scale vs Scale With Top K'
+    # 2 * 2 subplots
+    #fig = tls.make_subplots(rows=2, cols=2, column_widths=[0.5, 0.5], row_heights=[0.5, 0.5],
+    #                        specs=[[{"type": "choropleth", "rowspan": 2}, {"type": "choropleth", "rowspan": 2}],[None, None]])
+
+    # 3 * 1 subplots
+    fig = tls.make_subplots(rows=ROW, cols=COL, column_widths=[1], row_heights=[0.33, 0.33, 0.33],
+                            specs=[[{"type": "choropleth"}], [{"type": "choropleth"}], [{"type": "choropleth"}]])
+
+    for r in range(ROW):
+        for c in range(COL):
+            _df = df_list[c*ROW+r]
+            fig.add_trace(
+                go.Choropleth(type='choropleth',
+                              locations=_df['country_region'].astype(str),
+                              z=_df['cluster'].astype(int),
+                              locationmode='country names',
+                              showscale=True, colorscale=_colorscale,
+                              colorbar=dict(
+                                  title="Cluster Index",
+                                  yanchor="top", x=-0.2, y=1,
+                                  ticks="outside", ticksuffix="(num)",
+                              ), ),
+                row=r+1, col=c+1
+            )
+
+    fig.update_layout(
+        title= title,
+        autosize=True,
+        width=1400,
+        height=900,
+    )
+    plotly.offline.plot(fig)
+    fig.show()
 
 
 dataset_feature = pd.read_csv(INPUT_FILE)
@@ -56,7 +107,6 @@ data_tmp=data_tmp.replace(np.nan, 0)
 data_tmp=data_tmp.replace('x', 0)
 
 print(data_tmp)
-dataMap=data_tmp
 
 
 data = data_tmp.drop(columns=["Country_Region","pop2020", "Confirmed", "total_covid_19_tests"])
@@ -68,46 +118,11 @@ print("\nfeatures:", data.columns)
 #------------------------------------------------------------------------------------------
 data_unscaled = data_tmp.drop(columns=["Country_Region","pop2020", "Confirmed", "total_covid_19_tests"])
 
-#Plot WCSS to find the best number of clusters to use
-wcss=[]
-for i in range(1,15):
-    kmeans = KMeans(n_clusters=i, init='k-means++')
-    kmeans.fit(data_unscaled)
-    wcss.append(kmeans.inertia_)
-# plt.plot(range(1,15), wcss)
-# plt.xlabel("No. of clusters")
-# plt.ylabel(" Within Cluster Sum of Squares")
-# plt.show()
-
-# Find the factor that impacts the confirmed ratio the most to visualize the clusters
-from sklearn.feature_selection import mutual_info_regression, mutual_info_classif
-from sklearn.feature_selection import SelectKBest, SelectPercentile
-mi = mutual_info_regression(data.drop(columns=['confirmed_ratio']), data['confirmed_ratio'] )
-mi = pd.Series(mi)
-mi.index = data.drop(columns=['confirmed_ratio']).columns
-mi.sort_values(ascending=False)
-mi.sort_values(ascending=False).plot.bar(figsize=(10, 4))
-plt.title("Factor impacting COVID-19 confirmed cases ratio (UNSCALED) GMM")
-plt.show()
 
 # Cluster without scaling
-
-
-
-# kmeans = KMeans(n_clusters = 5, init='k-means++')
-# kmeans.fit(data_unscaled)
-# pred = kmeans.predict(data_unscaled)
-
-
+#GMM
 gmm = GMM(n_components=5).fit(data_unscaled)
 pred = gmm.predict(data_unscaled)
-# plt.scatter(data_k.iloc[:,0], data_k.iloc[:,1], c=pred, s=40, cmap='viridis')
-# plt.title('Covid Clustering using GMM')
-# plt.xlabel("Test Perfomed by the country")
-# plt.ylabel("No. of confirmed cases")
-# plt.show()
-
-# 
 
 data_unscaled["country_region"]=data_tmp["Country_Region"]
 data_unscaled['cluster'] = pred
@@ -115,6 +130,9 @@ print("\nDATAFRAME WITHOUT SCALING")
 print(data_unscaled.tail(30))
 print("\nCluster counts:")
 print(data_unscaled['cluster'].value_counts())
+
+### #01 Emma - call plot_clusters function to plot clusters with unscaled_data
+plot_clusters(data_unscaled, title= "[GMM]Clusters With UnScaled Data Based On All Factors")
 
 print("\nCLUSTERS WITHOUT SCALING")
 for group in range(0,5):
@@ -125,22 +143,11 @@ for group in range(0,5):
 # Plot cluster visualization
 plt.figure(figsize=(10, 8))
 plt.scatter(data_unscaled['current_health_expenditure_per_capita'], data_unscaled["confirmed_ratio"],c=pred, cmap='rainbow')
-plt.title('Covid Clustering (GMM)')
+
+plt.title('[GMM]Covid Clustering for UNSCALED DATA')
 plt.xlabel("Current Health Expenditure Per Capita")
 plt.ylabel("No. of confirmed cases")
 plt.show()
-
-
-
-
-
-data_map = [dict(type='choropleth',
-             locations = dataMap['Country_Region'].astype(str),
-             z=dataMap['Confirmed'].astype(int),
-             locationmode='country names')]
-fig = dict(data=data_map, 
-           layout_title_text="GMM COVID-19 Confirmed cases")
-plotly.offline.plot(fig)
 
 cluster_avgs = pd.DataFrame(round(data_unscaled.groupby('cluster').mean(),1))
 print("\nCLUSTER UNSCALED AVERAGES\n", cluster_avgs)
@@ -151,44 +158,12 @@ print("\nCLUSTER UNSCALED AVERAGES\n", cluster_avgs)
 scaler = StandardScaler()
 print("DATA FOR CLUSTERING\n", data.tail(10))
 data_k = scaler.fit_transform(data)
-
-#Plot WCSS to find the best number of clusters to use
-wcss=[]
-# for i in range(1,15):
-#     kmeans = KMeans(n_clusters=i, init='k-means++')
-#     kmeans.fit(data_k)
-#     wcss.append(kmeans.inertia_)
-# plt.plot(range(1,15), wcss)
-# plt.xlabel("No. of clusters")
-# plt.ylabel(" Within Cluster Sum of Squares")
-# plt.show()
-
 data_scaled = pd.DataFrame(data_k)
 data_scaled.columns = data.columns
-# Find the factor that impacts the confirmed ratio the most to visualize the clusters
-from sklearn.feature_selection import mutual_info_regression, mutual_info_classif
-from sklearn.feature_selection import SelectKBest, SelectPercentile
-mi = mutual_info_regression(data_scaled.drop(columns=['confirmed_ratio']), data_scaled['confirmed_ratio'] )
-mi = pd.Series(mi)
-mi.index = data_scaled.drop(columns=['confirmed_ratio']).columns
-mi.sort_values(ascending=False)
-mi.sort_values(ascending=False).plot.bar(figsize=(10, 4))
-plt.title("Factor impacting COVID-19 confirmed cases ratio (SCALED) GMM")
-plt.show()
-
-# Cluster based on ALL features
-# kmeans = KMeans(n_clusters = 5, init='k-means++')
-# kmeans.fit(data_k)
-# pred = kmeans.predict(data_k)
-
 # Cluster based on ALL features
 #GMM
 gmm = GMM(n_components=5).fit(data_k)
 pred = gmm.predict(data_k)
-
-
-
-
 # Convert scaled matrix back into dataframe and add in column names
 df_k = pd.DataFrame(data_k)
 df_k.columns = data.columns
@@ -198,37 +173,65 @@ print("\nDATAFRAME K")
 print(df_k.tail(30))
 print("\nCluster counts:")
 print(df_k['cluster'].value_counts())
-
 print("\nCLUSTERS WITH SCALING")
 for group in range(0,5):
     countries=df_k.loc[df_k['cluster']==group]
     listofcoutries= list(countries['country_region'])
     print("Group", group, ":", listofcoutries ,"\n-------------------")
 
+### #02 Emma - call plot_clusters function to plot clusters with scaled_data
+plot_clusters(df_k, title= "Clusters With Scaled Data Based On All Factors")
+
+
 # Plot cluster visualization
 plt.figure(figsize=(10, 8))
 plt.scatter(df_k['current_health_expenditure_per_capita'], df_k["confirmed_ratio"],c=pred, cmap='rainbow')
-plt.title('Covid Clustering GMM')
+plt.title('[GMM]Covid Clustering for SCALED DATA')
 plt.xlabel("Current Health Expenditure Per Capita")
 plt.ylabel("No. of confirmed cases")
 plt.show()
-
-
-data = [dict(type='choropleth',
-             colorscale='reds',
-             locations =df_k['country_region'].astype(str),
-             z= df_k['cluster'].astype(int),
-             locationmode='country names')]
-# Plotting the groups of countries on world map¶
-
-fig = dict(data=data, 
-           layout_title_text="Country grouped based on GMM Health care quality, no. of COVID-19 cases and tests performed")
-
-plotly.offline.plot(fig)
-
 
 # Find cluster averages 
 df_cluster = df_k[['cluster', 'confirmed_ratio', 'current_health_expenditure_per_capita', 'test_ratio', 'inform_risk', 'HDI Rank (2018)', 'mortality_rate_under_5' ]]
 cluster_avgs = pd.DataFrame(round(df_cluster.groupby('cluster').mean(),1))
 print("\nCLUSTER AVERAGES\n", cluster_avgs)
 
+#------------------------------------------------------------------------------------------
+# CLUSTER WITH TOP FACTORS & SCALED DATA
+#------------------------------------------------------------------------------------------
+df_top = df_cluster.drop(columns=['cluster'])
+kmeans = KMeans(n_clusters = 5, init='k-means++')
+kmeans.fit(df_top)
+pred = kmeans.predict(df_top)
+
+df_top["country_region"]=data_tmp["Country_Region"]
+df_top['cluster'] = pred
+print("\nDATAFRAME TOP")
+print(df_top.tail(30))
+print("\nCluster counts:")
+print(df_top['cluster'].value_counts())
+
+
+for group in range(0,5):
+    countries=df_top.loc[df_top['cluster']==group]
+    listofcoutries= list(countries['country_region'])
+    print("Group", group, ":", listofcoutries, "\n")
+
+### #03 Emma - call plot_clusters function to plot clusters with top k data
+plot_clusters(df_top, title= "5 Clusters Based On Top 5 Factors")
+
+# Plot cluster visualization
+plt.figure(figsize=(10, 8))
+plt.scatter(df_top['current_health_expenditure_per_capita'], df_top["confirmed_ratio"],c=pred, cmap='rainbow')
+
+plt.title('[GMM]Covid Clustering for TOP FACTORS AND SCALED DATA')
+plt.xlabel("Current Health Expenditure Per Capita")
+plt.ylabel("No. of confirmed cases")
+plt.show()
+
+cluster_avgs = pd.DataFrame(round(df_top.groupby('cluster').mean(),1))
+print("\nCLUSTER TOP AVERAGES\n", cluster_avgs)
+
+
+### #04 Emma - call plot_multiple_maps function
+plot_multiple_maps([data_unscaled,df_k, df_top], title= None)
