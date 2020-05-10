@@ -105,7 +105,8 @@ for group in range(0,5):
 # Plot cluster visualization
 plt.figure(figsize=(10, 8))
 plt.scatter(data_unscaled['current_health_expenditure_per_capita'], data_unscaled["confirmed_ratio"],c=pred, cmap='rainbow')
-plt.title('Covid Clustering')
+
+plt.title('Covid Clustering for UNSCALED DATA')
 plt.xlabel("Current Health Expenditure Per Capita")
 plt.ylabel("No. of confirmed cases")
 plt.show()
@@ -168,7 +169,7 @@ for group in range(0,5):
 # Plot cluster visualization
 plt.figure(figsize=(10, 8))
 plt.scatter(df_k['current_health_expenditure_per_capita'], df_k["confirmed_ratio"],c=pred, cmap='rainbow')
-plt.title('Covid Clustering')
+plt.title('Covid Clustering for SCALED DATA')
 plt.xlabel("Current Health Expenditure Per Capita")
 plt.ylabel("No. of confirmed cases")
 plt.show()
@@ -178,3 +179,35 @@ df_cluster = df_k[['cluster', 'confirmed_ratio', 'current_health_expenditure_per
 cluster_avgs = pd.DataFrame(round(df_cluster.groupby('cluster').mean(),1))
 print("\nCLUSTER AVERAGES\n", cluster_avgs)
 
+#------------------------------------------------------------------------------------------
+# CLUSTER WITH TOP FACTORS & SCALED DATA
+#------------------------------------------------------------------------------------------
+df_top = df_cluster.drop(columns=['cluster'])
+kmeans = KMeans(n_clusters = 5, init='k-means++')
+kmeans.fit(df_top)
+pred = kmeans.predict(df_top)
+
+df_top["country_region"]=data_tmp["Country_Region"]
+df_top['cluster'] = pred
+print("\nDATAFRAME TOP")
+print(df_top.tail(30))
+print("\nCluster counts:")
+print(df_top['cluster'].value_counts())
+
+
+for group in range(0,5):
+    countries=df_top.loc[df_top['cluster']==group]
+    listofcoutries= list(countries['country_region'])
+    print("Group", group, ":", listofcoutries, "\n")
+
+# Plot cluster visualization
+plt.figure(figsize=(10, 8))
+plt.scatter(df_top['current_health_expenditure_per_capita'], df_top["confirmed_ratio"],c=pred, cmap='rainbow')
+
+plt.title('Covid Clustering for TOP FACTORS AND SCALED DATA')
+plt.xlabel("Current Health Expenditure Per Capita")
+plt.ylabel("No. of confirmed cases")
+plt.show()
+
+cluster_avgs = pd.DataFrame(round(df_top.groupby('cluster').mean(),1))
+print("\nCLUSTER TOP AVERAGES\n", cluster_avgs)
