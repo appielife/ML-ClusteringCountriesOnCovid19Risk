@@ -26,6 +26,57 @@ FILTER_FEATURES = ['Country_Region', 'total_covid_19_tests','Confirmed', 'pop202
        'inform_access_to_healthcare', 'current_health_expenditure_per_capita',
        'maternal_mortality_ratio']
 
+def plot_clusters(df_k, title):
+    colorscale = [[0, 'blue'], [0.25, 'green'], [0.5, 'yellow'], [0.75, 'orange'], [1, 'red']]
+
+    data = [dict(type='choropleth',
+                 locations=df_k['country_region'].astype(str),
+                 z=df_k['cluster'].astype(int),
+                 locationmode='country names',
+                 colorscale=colorscale)]
+
+    fig = dict(data=data,
+               layout_title_text="<b>" + title + "</b>")
+    plotly.offline.plot(fig)
+
+def plot_multiple_maps(df_list, title = None):
+    ## plot result
+    _colorscale = [[0, 'blue'], [0.25, 'green'], [0.5, 'yellow'], [0.75, 'orange'], [1, 'red']]
+    ROW, COL = 3, 1
+    if not title: title = 'UnScale vs Scale vs Scale With Top K'
+    # 2 * 2 subplots
+    #fig = tls.make_subplots(rows=2, cols=2, column_widths=[0.5, 0.5], row_heights=[0.5, 0.5],
+    #                        specs=[[{"type": "choropleth", "rowspan": 2}, {"type": "choropleth", "rowspan": 2}],[None, None]])
+
+    # 3 * 1 subplots
+    fig = tls.make_subplots(rows=ROW, cols=COL, column_widths=[1], row_heights=[0.33, 0.33, 0.33],
+                            specs=[[{"type": "choropleth"}], [{"type": "choropleth"}], [{"type": "choropleth"}]])
+
+    for r in range(ROW):
+        for c in range(COL):
+            _df = df_list[c*ROW+r]
+            fig.add_trace(
+                go.Choropleth(type='choropleth',
+                              locations=_df['country_region'].astype(str),
+                              z=_df['cluster'].astype(int),
+                              locationmode='country names',
+                              showscale=True, colorscale=_colorscale,
+                              colorbar=dict(
+                                  title="Cluster Index",
+                                  yanchor="top", x=-0.2, y=1,
+                                  ticks="outside", ticksuffix="(num)",
+                              ), ),
+                row=r+1, col=c+1
+            )
+
+    fig.update_layout(
+        title= title,
+        autosize=True,
+        width=1400,
+        height=900,
+    )
+
+    fig.show()
 
 dataset_feature = pd.read_csv(INPUT_FILE)
 
@@ -95,6 +146,9 @@ print("\nDATAFRAME WITHOUT SCALING")
 print(data_unscaled.tail(30))
 print("\nCluster counts:")
 print(data_unscaled['cluster'].value_counts())
+
+### #01 Emma - call plot_clusters function to plot clusters with unscaled_data
+plot_clusters(data_unscaled, title= "Clusters With UnScaled Data Based On All Factors")
 
 print("\nCLUSTERS WITHOUT SCALING")
 for group in range(0,5):
@@ -166,6 +220,10 @@ for group in range(0,5):
     listofcoutries= list(countries['country_region'])
     print("Group", group, ":", listofcoutries ,"\n-------------------")
 
+### #02 Emma - call plot_clusters function to plot clusters with scaled_data
+plot_clusters(df_k, title= "Clusters With Scaled Data Based On All Factors")
+
+
 # Plot cluster visualization
 plt.figure(figsize=(10, 8))
 plt.scatter(df_k['current_health_expenditure_per_capita'], df_k["confirmed_ratio"],c=pred, cmap='rainbow')
@@ -200,6 +258,9 @@ for group in range(0,5):
     listofcoutries= list(countries['country_region'])
     print("Group", group, ":", listofcoutries, "\n")
 
+### #03 Emma - call plot_clusters function to plot clusters with top k data
+plot_clusters(df_top, title= "5 Clusters Based On Top 5 Factors")
+
 # Plot cluster visualization
 plt.figure(figsize=(10, 8))
 plt.scatter(df_top['current_health_expenditure_per_capita'], df_top["confirmed_ratio"],c=pred, cmap='rainbow')
@@ -211,3 +272,7 @@ plt.show()
 
 cluster_avgs = pd.DataFrame(round(df_top.groupby('cluster').mean(),1))
 print("\nCLUSTER TOP AVERAGES\n", cluster_avgs)
+
+
+### #04 Emma - call plot_multiple_maps function
+plot_multiple_maps([data_unscaled,df_k, df_top], title= None)
