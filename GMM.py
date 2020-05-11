@@ -144,12 +144,14 @@ for group in range(0,5):
 # Plot cluster visualization
 plt.figure(figsize=(10, 8))
 plt.scatter(data_unscaled['current_health_expenditure_per_capita'], data_unscaled["confirmed_ratio"],c=pred, cmap='rainbow')
-
+ax = plt.gca()
+ax.set_xticks([20,40,60, 80])
+ax.set_xticklabels(['20','40','60','80'])
 plt.title('[GMM]Covid Clustering for UNSCALED DATA')
 plt.xlabel("Current Health Expenditure Per Capita")
 plt.ylabel("Ratio of Confirmed COVID Cases")
 
-plt.show()
+plt.show() 
 
 cluster_avgs = pd.DataFrame(round(data_unscaled.groupby('cluster').mean(),1))
 print("\nCLUSTER UNSCALED AVERAGES\n", cluster_avgs)
