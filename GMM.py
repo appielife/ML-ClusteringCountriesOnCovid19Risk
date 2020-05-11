@@ -47,7 +47,8 @@ def plot_multiple_maps(df_list, title = None):
     ## plot result
     _colorscale = [[0, 'blue'], [0.25, 'green'], [0.5, 'yellow'], [0.75, 'orange'], [1, 'red']]
     ROW, COL = 3, 1
-    if not title: title = '[GMM] UnScale vs Scale vs Scale With Top K'
+    if not title: title = 'Unscaled vs Scaled vs Scaled with Top Factors'
+
     # 2 * 2 subplots
     #fig = tls.make_subplots(rows=2, cols=2, column_widths=[0.5, 0.5], row_heights=[0.5, 0.5],
     #                        specs=[[{"type": "choropleth", "rowspan": 2}, {"type": "choropleth", "rowspan": 2}],[None, None]])
@@ -127,7 +128,7 @@ pred = gmm.predict(data_unscaled)
 data_unscaled["country_region"]=data_tmp["Country_Region"]
 data_unscaled['cluster'] = pred
 print("\nDATAFRAME WITHOUT SCALING")
-print(data_unscaled.tail(30))
+print(data_unscaled.tail(10))
 print("\nCluster counts:")
 print(data_unscaled['cluster'].value_counts())
 
@@ -146,11 +147,13 @@ plt.scatter(data_unscaled['current_health_expenditure_per_capita'], data_unscale
 
 plt.title('[GMM]Covid Clustering for UNSCALED DATA')
 plt.xlabel("Current Health Expenditure Per Capita")
-plt.ylabel("No. of confirmed cases")
+plt.ylabel("Ratio of Confirmed COVID Cases")
+
 plt.show()
 
 cluster_avgs = pd.DataFrame(round(data_unscaled.groupby('cluster').mean(),1))
 print("\nCLUSTER UNSCALED AVERAGES\n", cluster_avgs)
+print("===========================")
 
 #------------------------------------------------------------------------------------------
 # CLUSTER WITH SCALED DATA
@@ -170,7 +173,7 @@ df_k.columns = data.columns
 df_k["country_region"]=data_tmp["Country_Region"]
 df_k['cluster'] = pred
 print("\nDATAFRAME K")
-print(df_k.tail(30))
+print(df_k.tail(10))
 print("\nCluster counts:")
 print(df_k['cluster'].value_counts())
 print("\nCLUSTERS WITH SCALING")
@@ -206,8 +209,8 @@ pred = kmeans.predict(df_top)
 
 df_top["country_region"]=data_tmp["Country_Region"]
 df_top['cluster'] = pred
-print("\nDATAFRAME TOP")
-print(df_top.tail(30))
+print("\nDATAFRAME SCALED TOP FACTORS")
+print(df_top.tail(10))
 print("\nCluster counts:")
 print(df_top['cluster'].value_counts())
 
@@ -226,11 +229,14 @@ plt.scatter(df_top['current_health_expenditure_per_capita'], df_top["confirmed_r
 
 plt.title('[GMM]Covid Clustering for TOP FACTORS AND SCALED DATA')
 plt.xlabel("Current Health Expenditure Per Capita")
-plt.ylabel("No. of confirmed cases")
+# plt.ylabel("No. of confirmed cases")
+plt.ylabel("Ratio of Confirmed COVID Cases")
+
 plt.show()
 
 cluster_avgs = pd.DataFrame(round(df_top.groupby('cluster').mean(),1))
-print("\nCLUSTER TOP AVERAGES\n", cluster_avgs)
+print("\nCLUSTER SCALED TOP AVERAGES\n", cluster_avgs)
+
 
 
 ### #04 Emma - call plot_multiple_maps function
