@@ -103,6 +103,17 @@ data_tmp=data_tmp.replace('x', 0)
 
 print(data_tmp)
 
+# Plot confirmed cases on the world map 
+colorscale = [[0, 'blue'], [0.25, 'green'], [0.5, 'yellow'], [0.75, 'orange'], [1, 'red']]
+data = [dict(type='choropleth',
+                locations=data_tmp['Country_Region'].astype(str),
+                z=data_tmp['Confirmed'].astype(int),
+                locationmode='country names',
+                colorscale=colorscale)]
+
+fig = dict(data=data,
+            layout_title_text="<b>Confirmed COVID-19 Cases</b>")
+plotly.offline.plot(fig)
 
 data = data_tmp.drop(columns=["Country_Region","pop2020", "Confirmed", "total_covid_19_tests"])
 print("DATA FOR CLUSTERING\n", data.tail(10))
@@ -133,7 +144,7 @@ mi = pd.Series(mi)
 mi.index = data.drop(columns=['confirmed_ratio']).columns
 mi.sort_values(ascending=False)
 mi.sort_values(ascending=False).plot.bar(figsize=(10, 4))
-plt.title("Factor impacting COVID-19 confirmed cases ratio (UNSCALED)")
+plt.title("Factor impacting COVID-19 confirmed cases ratio")
 plt.show()
 
 # Cluster without scaling
@@ -169,10 +180,15 @@ plt.ylabel("Ratio of Confirmed COVID Cases")
 plt.show()
 
 
+data_unscaled['HDI Rank (2018)'] = data_unscaled['HDI Rank (2018)'].astype(float)
+data_unscaled['current_health_expenditure_per_capita'] = data_unscaled['current_health_expenditure_per_capita'].astype(float)
+data_unscaled['mortality_rate_under_5'] = data_unscaled['mortality_rate_under_5'].astype(float)
 
-cluster_avgs = pd.DataFrame(round(data_unscaled.groupby('cluster').mean(),1))
+df_cluster = data_unscaled[['cluster', 'confirmed_ratio', 'current_health_expenditure_per_capita', 'test_ratio', 'inform_risk', 'HDI Rank (2018)', 'mortality_rate_under_5' ]]
+cluster_avgs = pd.DataFrame(round(df_cluster.groupby('cluster').mean(),1))
 print("\nCLUSTER UNSCALED AVERAGES\n", cluster_avgs)
 print("===========================")
+
 
 #------------------------------------------------------------------------------------------
 # CLUSTER WITH SCALED DATA
