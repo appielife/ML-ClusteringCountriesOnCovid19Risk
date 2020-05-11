@@ -9,7 +9,7 @@ from matplotlib import pyplot as plt
 from sklearn.mixture import GaussianMixture as GMM
 
 
-INPUT_FILE = "features_combined.csv"
+INPUT_FILE = "./dataSource_emma/features_combined.csv"
 
 ## Add feature names that you want to filter out
 NULL_FEATURES = ['country','Country_Region','entity','total_covid_19_tests']
@@ -199,9 +199,8 @@ print("\nCLUSTER AVERAGES\n", cluster_avgs)
 # CLUSTER WITH TOP FACTORS & SCALED DATA
 #------------------------------------------------------------------------------------------
 df_top = df_cluster.drop(columns=['cluster'])
-kmeans = KMeans(n_clusters = 5, init='k-means++')
-kmeans.fit(df_top)
-pred = kmeans.predict(df_top)
+gmm = GMM(n_components=5).fit(df_top)
+pred = gmm.predict(df_top)
 
 df_top["country_region"]=temp_data["Country_Region"]
 df_top['cluster'] = pred
