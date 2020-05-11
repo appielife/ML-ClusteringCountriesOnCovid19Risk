@@ -1,3 +1,13 @@
+'''
+    Author:
+    Arpit Parwal <aparwal@usc.edu>
+    Yeon-soo Park <yeonsoop@usc.edu>
+    Vanessa Tan <tanvanes@usc.edu>
+    Sudeeptha Mouni Ganji <sganji@usc.edu>
+
+'''
+
+
 import pandas as pd
 import numpy as np
 import plotly.subplots as tls
@@ -9,7 +19,7 @@ from matplotlib import pyplot as plt
 from sklearn.mixture import GaussianMixture as GMM
 
 
-INPUT_FILE = "./dataSource_emma/features_combined.csv"
+INPUT_FILE = "./dataSource/features_combined.csv"
 
 ## Add feature names that you want to filter out
 NULL_FEATURES = ['country','Country_Region','entity','total_covid_19_tests']
